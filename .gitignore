@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+server/node_modules/
+
+# secrets — 절대 커밋 금지
+.env
+server/.env
+*.local
+
+# logs / os
+*.log
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/
+.idea/

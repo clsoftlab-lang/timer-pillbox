@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  Copyright 2026 CLSOFTLAB (씨엘소프트랩), Dr. Lee Il-guk (이일국)
+-->
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <title>타이머 알약통 · 복약 알림 앱</title>
+  <meta name="description" content="시니어·만성질환자를 위한 복약 알림, 상호작용 경고, 순응도 기록 웹앱. 타이머 알약통 하드웨어 컨셉 데모." />
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='6' y='4' width='20' height='24' rx='4' fill='%232f7d6e'/%3E%3Crect x='6' y='14' width='20' height='3' fill='%23fff'/%3E%3Ccircle cx='16' cy='9' r='3' fill='%23ffd166'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <a class="skip-link" href="#main">본문 바로가기</a>
+
+  <header class="app-header">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 48 48" width="40" height="40" aria-hidden="true">
+        <rect x="9" y="5" width="30" height="38" rx="6" fill="var(--brand)" />
+        <rect x="9" y="22" width="30" height="4" fill="#fff" opacity="0.9" />
+        <circle cx="24" cy="14" r="5" fill="var(--accent)" />
+        <rect x="21" y="30" width="6" height="8" rx="2" fill="#fff" opacity="0.85" />
+      </svg>
+      <div>
+        <h1>타이머 알약통</h1>
+        <p class="tagline">복약 알림 · 상호작용 경고 · 순응도 기록</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="btn-large" class="ghost-btn" type="button" aria-pressed="false">가 큰 글씨</button>
+      <button id="btn-theme" class="ghost-btn" type="button">🌗 테마</button>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="주요 화면">
+    <button class="tab-btn is-active" data-tab="today" type="button">오늘</button>
+    <button class="tab-btn" data-tab="schedule" type="button">스케줄</button>
+    <button class="tab-btn" data-tab="interactions" type="button">상호작용</button>
+    <button class="tab-btn" data-tab="adherence" type="button">순응도</button>
+    <button class="tab-btn" data-tab="ai" type="button">AI 상담</button>
+    <button class="tab-btn" data-tab="device" type="button">디바이스</button>
+  </nav>
+
+  <main id="main">
+    <p class="disclaimer" role="note">
+      ⚠️ 이 앱은 <strong>의학적 조언이 아닙니다.</strong> 모든 데이터는 가상 예시이며,
+      실제 복약 결정은 반드시 의사·약사와 상의하세요.
+    </p>
+
+    <!-- 오늘 -->
+    <section id="tab-today" class="tab-panel is-active" aria-labelledby="today-h">
+      <h2 id="today-h">오늘의 복약</h2>
+      <div class="progress-card">
+        <div class="progress-info">
+          <span id="progress-text">0 / 0 복용</span>
+          <span id="progress-percent" class="progress-percent">0%</span>
+        </div>
+        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="progress-bar" class="progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+      <div id="notif-hint" class="notif-hint">
+        <button id="btn-notif" class="primary-btn" type="button">🔔 알림 켜기</button>
+        <span id="notif-state" class="muted">알림 상태: 확인 중</span>
+      </div>
+      <ul id="today-list" class="dose-list" aria-live="polite"></ul>
+    </section>
+
+    <!-- 스케줄 -->
+    <section id="tab-schedule" class="tab-panel" aria-labelledby="sched-h" hidden>
+      <h2 id="sched-h">복약 스케줄 등록</h2>
+      <form id="med-form" class="med-form" autocomplete="off">
+        <div class="field">
+          <label for="f-name">약 이름</label>
+          <input id="f-name" name="name" type="text" required maxlength="60" placeholder="예: 혈압약" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="f-dose">용량</label>
+            <input id="f-dose" name="dose" type="text" maxlength="30" placeholder="예: 1정" />
+          </div>
+          <div class="field">
+            <label for="f-ing">성분(쉼표로 구분)</label>
+            <input id="f-ing" name="ingredients" type="text" maxlength="120" placeholder="예: ibuprofen, nsaid" />
+          </div>
+        </div>
+        <fieldset class="field">
+          <legend>시간대</legend>
+          <div id="slot-choices" class="chip-group"></div>
+        </fieldset>
+        <fieldset class="field">
+          <legend>요일</legend>
+          <div id="day-choices" class="chip-group"></div>
+        </fieldset>
+        <div class="form-actions">
+          <button type="submit" class="primary-btn">추가</button>
+          <button id="btn-reset-demo" type="button" class="ghost-btn">데모 데이터 다시 불러오기</button>
+          <button id="btn-clear-all" type="button" class="danger-btn">전체 삭제</button>
+        </div>
+      </form>
+      <h3>등록된 약</h3>
+      <ul id="med-list" class="med-list"></ul>
+    </section>
+
+    <!-- 상호작용 -->
+    <section id="tab-interactions" class="tab-panel" aria-labelledby="intx-h" hidden>
+      <h2 id="intx-h">상호작용 / 중복 경고</h2>
+      <p class="muted">등록된 약들의 성분을 규칙 표와 대조해 경고를 표시합니다. (규칙 기반 데모, 의학적 조언 아님)</p>
+      <div class="ai-inline">
+        <button id="btn-explain" class="primary-btn" type="button">🤖 경고를 쉬운 말로 설명 (AI)</button>
+      </div>
+      <div id="warnings" class="warnings" aria-live="polite"></div>
+      <pre id="explain-out" class="ai-out" hidden></pre>
+    </section>
+
+    <!-- 순응도 -->
+    <section id="tab-adherence" class="tab-panel" aria-labelledby="adh-h" hidden>
+      <h2 id="adh-h">복약 순응도 (최근 7일)</h2>
+      <div id="adherence-chart" class="chart" aria-label="최근 7일 복약 순응도 그래프"></div>
+      <p id="adherence-summary" class="muted"></p>
+    </section>
+
+    <!-- AI 상담 -->
+    <section id="tab-ai" class="tab-panel" aria-labelledby="ai-h" hidden>
+      <h2 id="ai-h">AI 복약 상담 (데모 · Mock)</h2>
+      <p class="muted">
+        데모에서는 <strong>기기 안(로컬) 규칙 엔진</strong>이 결정론적으로 답합니다. 실제 Claude 연동은
+        <code>server/</code> 프록시 + <code>AI_ENDPOINT</code> 설정 시 동작합니다.
+        <strong>AI 응답은 의학적 조언이 아닙니다.</strong>
+      </p>
+      <div class="ai-quick">
+        <button class="chip" data-q="약을 놓쳤을 때는 어떻게 하나요?" type="button">약을 놓쳤을 때는?</button>
+        <button class="chip" data-q="이 약들 같이 먹어도 되나요?" type="button">같이 먹어도 되나요?</button>
+        <button class="chip" data-q="복용 시간을 추천해줘" type="button">복용 시간 추천</button>
+        <button id="btn-optimize" class="chip" type="button">스케줄 최적화 제안</button>
+      </div>
+      <div id="ai-chat" class="ai-chat" aria-live="polite"></div>
+      <form id="ai-form" class="ai-form">
+        <input id="ai-input" type="text" maxlength="200" placeholder="질문을 입력하세요…" autocomplete="off" />
+        <button class="primary-btn" type="submit">보내기</button>
+      </form>
+    </section>
+
+    <!-- 디바이스 스펙 -->
+    <section id="tab-device" class="tab-panel" aria-labelledby="dev-h" hidden>
+      <h2 id="dev-h">디바이스 스펙 · 타이머 알약통</h2>
+      <div class="device-grid">
+        <div class="device-art">
+          <svg viewBox="0 0 240 200" width="100%" role="img" aria-label="타이머 알약통 개념도">
+            <rect x="20" y="30" width="200" height="140" rx="16" fill="var(--card)" stroke="var(--brand)" stroke-width="3" />
+            <g>
+              <rect x="34" y="52" width="80" height="46" rx="8" fill="var(--brand)" opacity="0.15" stroke="var(--brand)" />
+              <rect x="126" y="52" width="80" height="46" rx="8" fill="var(--brand)" opacity="0.15" stroke="var(--brand)" />
+              <rect x="34" y="106" width="80" height="46" rx="8" fill="var(--brand)" opacity="0.15" stroke="var(--brand)" />
+              <rect x="126" y="106" width="80" height="46" rx="8" fill="var(--brand)" opacity="0.15" stroke="var(--brand)" />
+              <text x="74" y="80" text-anchor="middle" font-size="14" fill="var(--fg)">아침</text>
+              <text x="166" y="80" text-anchor="middle" font-size="14" fill="var(--fg)">점심</text>
+              <text x="74" y="134" text-anchor="middle" font-size="14" fill="var(--fg)">저녁</text>
+              <text x="166" y="134" text-anchor="middle" font-size="14" fill="var(--fg)">취침</text>
+            </g>
+            <circle cx="46" cy="64" r="4" fill="var(--accent)" />
+            <circle cx="138" cy="64" r="4" fill="var(--ok)" />
+            <circle cx="46" cy="118" r="4" fill="var(--warn)" />
+            <circle cx="138" cy="118" r="4" fill="var(--brand)" />
+            <rect x="90" y="12" width="60" height="16" rx="8" fill="var(--accent)" />
+            <text x="120" y="24" text-anchor="middle" font-size="10" fill="#3a2f00">BLE · 부저</text>
+          </svg>
+        </div>
+        <div id="device-spec" class="device-spec"></div>
+      </div>
+      <h3>개략 BOM (Bill of Materials)</h3>
+      <div class="table-wrap">
+        <table id="bom-table" class="bom">
+          <thead><tr><th>부품</th><th>사양(예시)</th><th>수량</th><th>개략 단가</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="muted">※ BOM·사양은 개념 검증용 개략치이며 실제 제품 사양이 아닙니다.</p>
+    </section>
+
+    <section class="origin" aria-labelledby="origin-h">
+      <h2 id="origin-h">🎓 아이디어 출처 / Idea origin</h2>
+      <p>
+        이 아이디어는 <strong>이일국 박사(Dr. Lee Il-guk)</strong>의 <strong>용인대학교(Yongin University)</strong>
+        창업 수업에서 나온 한 우수 학생의 발표에서 영감을 받았습니다. 원본 자료·문장·개인정보는 사용하지 않은
+        <strong>클린룸(clean-room)</strong> 재구성이며, 데모 데이터는 모두 가상입니다. 좋은 아이디어를 나눠 준
+        학생에게 감사드립니다.
+      </p>
+      <p class="muted">
+        Inspired by a standout student's pitch in Dr. Lee Il-guk's entrepreneurship class at Yongin University.
+        Clean-room reconstruction — no copied text, no personal data, fictional demo data only. With gratitude.
+      </p>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>© 2026 CLSOFTLAB (씨엘소프트랩) · Dr. Lee Il-guk (이일국) · Apache-2.0 / CC BY 4.0</p>
+    <p class="muted">Not an official Anthropic product. 의학적 조언이 아닙니다.</p>
+  </footer>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "_comment": "SPDX-License-Identifier: Apache-2.0 | Copyright 2026 CLSOFTLAB (씨엘소프트랩), Dr. Lee Il-guk (이일국). 개념 검증용 개략 사양(예시). 실제 제품 사양 아님.",
+  "spec": [
+    { "label": "칸 구성", "value": "4칸 (아침/점심/저녁/취침), 칸별 독립 뚜껑 센서" },
+    { "label": "타이머/알람", "value": "칸별 예약 시각, RTC 실시간 시계 백업" },
+    { "label": "알림", "value": "칸별 RGB LED + 피에조 부저 (점진적 음량)" },
+    { "label": "앱 연동", "value": "BLE 5.0 (저전력), 스케줄/기록 동기화" },
+    { "label": "확인 감지", "value": "뚜껑 열림 센서로 '복용함' 자동 기록 후보" },
+    { "label": "전원", "value": "USB-C 충전 + 리튬 500mAh, 저전력 대기" },
+    { "label": "접근성", "value": "큰 아이콘, 큰 소리, 색약 고려 색상" }
+  ],
+  "bom": [
+    { "part": "MCU (BLE SoC)", "spec": "nRF52 계열 저전력 BLE", "qty": 1, "cost": "$3~5" },
+    { "part": "RTC 모듈", "spec": "I2C 실시간 시계 + 코인셀 백업", "qty": 1, "cost": "$0.5" },
+    { "part": "RGB LED", "spec": "칸별 표시등", "qty": 4, "cost": "$0.4" },
+    { "part": "피에조 부저", "spec": "알람용 소형 스피커", "qty": 1, "cost": "$0.6" },
+    { "part": "뚜껑 열림 센서", "spec": "홀 센서 또는 마이크로 스위치", "qty": 4, "cost": "$1.2" },
+    { "part": "배터리+충전 IC", "spec": "Li-Po 500mAh + USB-C 충전", "qty": 1, "cost": "$3" },
+    { "part": "케이스/사출", "spec": "칸막이 일체형 ABS", "qty": 1, "cost": "$2~4" }
+  ]
+}

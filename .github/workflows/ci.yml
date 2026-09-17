@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 CLSOFTLAB (씨엘소프트랩), Dr. Lee Il-guk (이일국)
+#
+# CI — no-build 검증만 수행한다.
+# 절대 npm install / server 실행 / 실제 AI(API) 호출을 하지 않는다.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: node --check (all JS incl. ai/ + server/)
+        run: |
+          for f in $(find . -path ./node_modules -prune -o \( -name '*.js' -o -name '*.mjs' \) -print); do
+            echo "checking $f"
+            node --check "$f"
+          done
+
+      - name: Run project verification (check.mjs)
+        run: node check.mjs
+
+      - name: Assert no API key committed
+        run: |
+          if grep -rEn 'sk-ant-[A-Za-z0-9_-]{8,}' --include='*.js' --include='*.mjs' --include='*.json' --include='*.html' .; then
+            echo "::error::Possible API key committed"; exit 1
+          fi
+          echo "No API key found."

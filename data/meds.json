@@ -1,0 +1,50 @@
+{
+  "_comment": "SPDX-License-Identifier: Apache-2.0 | Copyright 2026 CLSOFTLAB (씨엘소프트랩), Dr. Lee Il-guk (이일국). 가상 데모 데이터 (fictional demo data, no PII, not medical advice).",
+  "meds": [
+    {
+      "id": "demo-amlodipine",
+      "name": "혈압약 (암로디핀 5mg)",
+      "ingredients": ["amlodipine"],
+      "dose": "1정",
+      "slots": ["morning"],
+      "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+      "note": "가상 데모 데이터입니다."
+    },
+    {
+      "id": "demo-metformin",
+      "name": "당뇨약 (메트포르민 500mg)",
+      "ingredients": ["metformin"],
+      "dose": "1정",
+      "slots": ["morning", "evening"],
+      "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+      "note": "식후 복용 예시(데모)."
+    },
+    {
+      "id": "demo-warfarin",
+      "name": "항응고제 (와파린 2mg)",
+      "ingredients": ["warfarin"],
+      "dose": "1정",
+      "slots": ["evening"],
+      "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+      "note": "가상 데모 데이터입니다."
+    },
+    {
+      "id": "demo-ibuprofen",
+      "name": "진통제 (이부프로펜 200mg)",
+      "ingredients": ["ibuprofen", "nsaid"],
+      "dose": "1정",
+      "slots": ["lunch"],
+      "days": ["mon", "wed", "fri"],
+      "note": "필요시 복용 예시(데모)."
+    },
+    {
+      "id": "demo-melatonin",
+      "name": "수면 보조 (멜라토닌 2mg)",
+      "ingredients": ["melatonin"],
+      "dose": "1정",
+      "slots": ["bedtime"],
+      "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+      "note": "가상 데모 데이터입니다."
+    }
+  ]
+}

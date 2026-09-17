@@ -1,0 +1,19 @@
+{
+  "name": "timer-pillbox-ai-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "타이머 알약통 앱을 위한 Claude API 보안 프록시 (키는 서버 환경변수에만 존재)",
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "license": "Apache-2.0",
+  "author": "CLSOFTLAB (씨엘소프트랩), Dr. Lee Il-guk (이일국)",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
