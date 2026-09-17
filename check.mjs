@@ -147,10 +147,17 @@ console.log("== 7) 보안 검사 ==");
 const cfg = readFileSync(join(root, "ai", "config.js"), "utf8");
 assert(/export\s+const\s+AI_ENDPOINT\s*=\s*""\s*;/.test(cfg), "ai/config.js AI_ENDPOINT 빈 문자열");
 {
-  // 저장소 전체에 실제 키(sk-ant-...) 없음 (.env.example의 자리표시자는 한글이므로 통과)
+  // .gitignore 가 .env 를 제외하는지 확인 (키/시크릿 커밋 방지)
+  const gi = readFileSync(join(root, ".gitignore"), "utf8");
+  assert(/(^|\n)\s*\.env\s*($|\n)/.test(gi), ".gitignore 가 .env 제외");
+}
+{
+  // 저장소 전체에 실제 키(sk-ant-...) 없음.
+  // 패턴 문자열을 분리 구성해 이 파일(README의 sk-ant… 설명 포함)이 자기 자신에
+  // 오탐되지 않도록 하고, {20,} 로 실제 키 길이만 매칭한다.
   const files = walk(root).filter((p) => !/LICENSE$/.test(p));
   let leak = null;
-  const keyPat = /sk-ant-[A-Za-z0-9_-]{8,}/;
+  const keyPat = new RegExp('sk-' + 'ant-[A-Za-z0-9_-]{20,}');
   for (const f of files) {
     if (f === resolve(root, "check.mjs")) continue;
     let txt;

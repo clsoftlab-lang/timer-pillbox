@@ -8,7 +8,7 @@
 
 import { AI_ENDPOINT } from "./config.js";
 import { analyzeMeds, highestSeverity } from "../interactions.js";
-import { suggestSchedule, occurrencesForDate, statusForOccurrences, progressOf } from "../schedule.js";
+import { suggestSchedule } from "../schedule.js";
 
 const DISCLAIMER = "※ 본 안내는 일반 정보이며 의학적 조언이 아닙니다. 복약 결정은 반드시 의사·약사와 상의하세요.";
 
@@ -58,6 +58,44 @@ export function mockRespond(task, payload = {}) {
     return lines.join("\n");
   }
 
+  if (task === "digest") {
+    // 무인(autonomous) 온-로드 다이제스트: '오늘 복약 요약 + 주의사항'.
+    // 앱의 스케줄/상호작용 엔진이 만든 요약을 결정론적 한국어 문장으로 정리한다.
+    const prog = payload.progress || { total: 0, taken: 0, percent: 0 };
+    const upcoming = Array.isArray(payload.upcoming) ? payload.upcoming : [];
+    const warnings = Array.isArray(payload.warnings)
+      ? payload.warnings
+      : analyzeMeds(meds, table);
+    const lines = ["[오늘 복약 요약 · 데모]"];
+    if (prog.total > 0) {
+      lines.push(`• 오늘 예정 ${prog.total}회 중 ${prog.taken}회 복용 완료 (${prog.percent}%).`);
+    } else {
+      lines.push("• 오늘 등록된 복용 일정이 없습니다. ‘스케줄’ 탭에서 약을 추가해 보세요.");
+    }
+    if (upcoming.length) {
+      const next = upcoming.slice(0, 3)
+        .map((u) => `${u.time || ""} ${u.name}`.trim())
+        .join(", ");
+      lines.push(`• 남은 복용: ${next}${upcoming.length > 3 ? " 외" : ""}. 시간 맞춰 챙기세요.`);
+    } else if (prog.total > 0) {
+      lines.push("• 남은 복용 일정이 없습니다. 오늘도 잘 챙기셨어요!");
+    }
+    lines.push("");
+    lines.push("■ 주의사항");
+    if (warnings.length) {
+      const sev = SEVERITY_KO[highestSeverity(warnings)] || "주의";
+      const top = warnings[0];
+      lines.push(`• 상호작용/중복 ${warnings.length}건 감지 (최고 심각도: ${sev}).`);
+      lines.push(`  예: ${(top.meds || []).join(" + ")} — ${top.message}`);
+      lines.push("  자세한 내용은 ‘상호작용’ 탭에서 확인하세요.");
+    } else {
+      lines.push("• 등록된 약들 사이에서 규칙상 감지되는 상호작용/중복은 없습니다.");
+    }
+    lines.push("");
+    lines.push(DISCLAIMER);
+    return lines.join("\n");
+  }
+
   // task === "chat" (기본)
   const q = String(payload.question || "").trim();
   const warnings = analyzeMeds(meds, table);
@@ -84,8 +122,25 @@ export function mockRespond(task, payload = {}) {
 }
 
 /**
+ * 목업을 (스트리밍 흉내 내어) 반환한다. 무인 폴백 경로에서 재사용.
+ * @param {string} task
+ * @param {object} payload
+ * @param {(t:string)=>void} [onToken]
+ * @returns {string}
+ */
+function streamMock(task, payload, onToken) {
+  const text = mockRespond(task, payload);
+  if (typeof onToken === "function") {
+    for (const chunk of text.split(/(?<=\n)/)) onToken(chunk);
+  }
+  return text;
+}
+
+/**
  * askAI — 통합 진입점.
- * @param {"chat"|"optimize"|"explain"} task
+ * 실 연동 실패(네트워크 오류 / 429 {fallback:true} / 그 외 오류) 시에는
+ * 자동으로 로컬 MockProvider 로 폴백하여 앱이 절대 멈추지 않는다(무인).
+ * @param {"chat"|"optimize"|"explain"|"digest"} task
  * @param {object} payload
  * @param {{onToken?:(t:string)=>void}} [opts]
  * @returns {Promise<string>} 전체 응답 텍스트
@@ -93,40 +148,44 @@ export function mockRespond(task, payload = {}) {
 export async function askAI(task, payload = {}, { onToken } = {}) {
   // 데모 모드: 엔드포인트 없음 → MockProvider (결정론적, 로컬 엔진)
   if (!AI_ENDPOINT) {
-    const text = mockRespond(task, payload);
-    if (typeof onToken === "function") {
-      // 스트리밍 흉내: 문장 단위로 흘려보낸다.
-      for (const chunk of text.split(/(?<=\n)/)) onToken(chunk);
-    }
-    return text;
+    return streamMock(task, payload, onToken);
   }
 
   // 실 연동 모드: 백엔드 프록시로 POST (키는 서버에만 존재)
-  const res = await fetch(AI_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ task, payload }),
-  });
-  if (!res.ok) {
-    throw new Error(`AI 백엔드 오류: ${res.status}`);
-  }
+  try {
+    const res = await fetch(AI_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ task, payload }),
+    });
 
-  // 스트리밍(text/event-stream 또는 청크 텍스트) 처리
-  if (res.body && typeof res.body.getReader === "function") {
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let full = "";
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const piece = decoder.decode(value, { stream: true });
-      full += piece;
-      if (typeof onToken === "function") onToken(piece);
+    // 429(레이트리밋/예산초과 {fallback:true}) 또는 그 외 오류 → 무인 폴백
+    if (!res.ok) {
+      return streamMock(task, payload, onToken);
     }
-    return full;
-  }
 
-  const text = await res.text();
-  if (typeof onToken === "function") onToken(text);
-  return text;
+    // 스트리밍(text/event-stream 또는 청크 텍스트) 처리
+    if (res.body && typeof res.body.getReader === "function") {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let full = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const piece = decoder.decode(value, { stream: true });
+        full += piece;
+        if (typeof onToken === "function") onToken(piece);
+      }
+      // 빈 응답이면(예: 서버가 조용히 실패) 폴백
+      return full || streamMock(task, payload, onToken);
+    }
+
+    const text = await res.text();
+    if (!text) return streamMock(task, payload, onToken);
+    if (typeof onToken === "function") onToken(text);
+    return text;
+  } catch {
+    // 네트워크 오류 등 → 무인 폴백
+    return streamMock(task, payload, onToken);
+  }
 }

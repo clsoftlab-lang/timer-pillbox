@@ -53,6 +53,10 @@
     <!-- 오늘 -->
     <section id="tab-today" class="tab-panel is-active" aria-labelledby="today-h">
       <h2 id="today-h">오늘의 복약</h2>
+      <div id="today-digest" class="digest-card" role="status" aria-live="polite" aria-label="오늘 복약 요약과 주의사항 (AI)">
+        <div class="digest-head">🤖 오늘 복약 요약 + 주의사항 <span class="muted">(AI · 의학적 조언 아님)</span></div>
+        <pre id="digest-out" class="digest-out">요약 준비 중…</pre>
+      </div>
       <div class="progress-card">
         <div class="progress-info">
           <span id="progress-text">0 / 0 복용</span>

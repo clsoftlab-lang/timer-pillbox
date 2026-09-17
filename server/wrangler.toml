@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 CLSOFTLAB (씨엘소프트랩), Dr. Lee Il-guk (이일국)
+#
+# Cloudflare Workers 배포 설정 (무인 · 무료 티어).
+# 키는 secret 으로만 저장한다:  wrangler secret put ANTHROPIC_API_KEY
+# (secret 은 저장소/이 파일에 저장되지 않는다.)
+
+name = "timer-pillbox-ai"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+# 비용/모델 튜닝용 비밀이 아닌 변수(선택). 실제 키는 절대 여기 두지 말 것.
+[vars]
+AI_MODEL = "claude-haiku-4-5"   # 상향: claude-sonnet-5 또는 claude-opus-5
+AI_MAX_TOKENS = "700"
+AI_EFFORT = "low"
+ALLOW_ORIGIN = "*"
+
+# ANTHROPIC_API_KEY 는 `wrangler secret put ANTHROPIC_API_KEY` 로만 설정한다.

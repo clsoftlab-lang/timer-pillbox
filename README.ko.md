@@ -46,6 +46,8 @@
 1. **AI 복약 상담 챗봇** — 스케줄/부작용/복용 놓쳤을 때 등 일반 안내.
 2. **복약 스케줄 최적화 제안** — 등록 약 목록으로 시간대 배분 제안.
 3. **상호작용 경고 자연어 설명** — 경고를 쉬운 말로 설명.
+4. **오늘 복약 요약 + 주의사항 (무인 다이제스트)** — 화면 로드 시 스케줄/상호작용 엔진으로
+   `askAI` 를 통해 자동 생성. 목업으로 오프라인에서도 동작.
 
 **데모 모드 경계(중요):**
 
@@ -53,8 +55,27 @@
   (스케줄/상호작용 엔진 재사용)로 동작합니다. 네트워크·키 없음.
 - **API 키는 브라우저/저장소에 절대 두지 않습니다. 키는 서버에만 존재합니다.**
 - **실제 Claude 연동**: `server/` 실행([`server/README.md`](./server/README.md)) →
-  서버 환경변수 **`ANTHROPIC_API_KEY`** 설정 → 모델 **`claude-opus-5`** →
-  `ai/config.js` 의 `AI_ENDPOINT` 를 프록시 URL로 설정. **키는 서버 측에만 둡니다.**
+  서버 환경변수 **`ANTHROPIC_API_KEY`** 설정 → 비용 우선 기본 모델 **`claude-haiku-4-5`**
+  (`AI_MODEL` 로 상향) → `ai/config.js` 의 `AI_ENDPOINT` 를 프록시 URL로 설정. **키는 서버 측에만 둡니다.**
+
+## ⚙️ 고도화 — 무인·저비용 실 AI 연동
+
+프록시는 **비용 합리적 · 무인(autonomous)** 실 AI 연동에 맞춰 튜닝되어 있습니다.
+
+- **비용 모델** — 비용 우선 기본 **`claude-haiku-4-5`** ($1 / $5 per MTok 입/출), 안정적 시스템
+  프롬프트 **prompt caching**, 태스크별 **출력 상한 `~700`**, **월간 토큰 예산**
+  (`AI_MONTHLY_TOKEN_CAP`, 기본 200만) + per-IP 레이트리밋. 품질이 더 필요하면 `AI_MODEL` 을
+  `claude-sonnet-5` / `claude-opus-5` 로 상향.
+- **개략 비용** — 짧은 요청(입력 ~500 + 출력 ~600 토큰) 기준 Haiku 4.5 에서 **1,000요청당 약 $3–4**
+  수준이며, 프롬프트 캐싱으로 반복 시스템 프롬프트 비용이 추가로 절감됩니다.
+- **무료 원-디플로이 호스팅** — `server/worker.js` + `server/wrangler.toml` 로 **Cloudflare Workers
+  무료 티어**에 배포(관리할 서버 없음): `wrangler secret put ANTHROPIC_API_KEY` → `wrangler deploy`.
+  Anthropic REST 를 직접 호출하며 동일한 태스크/모델/캐싱 규칙을 따릅니다.
+- **절대 멈추지 않음(무인)** — 엔드포인트 실패 · `429 {fallback:true}` · 네트워크 오류 시
+  `ai/ai.js` 가 **로컬 목업으로 자동 폴백**(스트리밍 유지)하여 앱이 계속 동작합니다.
+
+> **API 키는 서버 측에만 — 브라우저나 저장소에 절대 두지 않습니다.** (Node 프록시: 환경변수,
+> Cloudflare Worker: `wrangler secret`.) AI 응답은 **의학적 조언이 아닙니다.**
 
 ## 로컬 실행
 

@@ -8,7 +8,7 @@
 import {
   SLOTS, DAY_KEYS, DAY_LABELS, slotLabel,
   occurrencesForDate, statusForOccurrences, dueNow, progressOf,
-  adherenceHistory, dateKey, occurrenceKey,
+  adherenceHistory, dateKey,
 } from "./schedule.js";
 import { analyzeMeds, highestSeverity } from "./interactions.js";
 import { askAI } from "./ai/ai.js";
@@ -329,6 +329,35 @@ async function runExplain() {
   } catch (err) { outEl.textContent = "AI 오류: " + (err && err.message || err); }
 }
 
+/**
+ * 무인(autonomous) 온-로드 다이제스트 — '오늘 복약 요약 + 주의사항'.
+ * 앱의 스케줄/상호작용 엔진으로 오늘 상황을 계산해 askAI("digest") 로 요약한다.
+ * AI_ENDPOINT 가 비어 있거나 백엔드 실패 시 로컬 목업으로 자동 폴백되어 오프라인에서도 동작한다.
+ * (표시 내용은 의학적 조언이 아님.)
+ */
+async function renderDigest() {
+  const out = $("#digest-out");
+  if (!out) return;
+  const d = now();
+  const dk = dateKey(d);
+  const occ = occurrencesForDate(state.meds, d);
+  const statusList = statusForOccurrences(occ, d, state.taken, dk, 0);
+  const prog = progressOf(statusList);
+  const upcoming = statusList
+    .filter((o) => o.status === "upcoming" || o.status === "due")
+    .map((o) => ({ name: o.name, time: o.time, slotLabel: o.slotLabel }));
+  const warnings = analyzeMeds(state.meds, state.rules);
+  try {
+    let acc = "";
+    await askAI("digest", aiPayload({ progress: prog, upcoming, warnings }), {
+      onToken: (t) => { acc += t; out.textContent = acc; },
+    });
+    if (!acc) out.textContent = "요약을 불러오지 못했습니다.";
+  } catch (err) {
+    out.textContent = "요약 오류: " + (err && err.message || err);
+  }
+}
+
 /* ---------- 탭 ---------- */
 function switchTab(name) {
   $$(".tab-btn").forEach((b) => b.classList.toggle("is-active", b.dataset.tab === name));
@@ -416,6 +445,9 @@ async function init() {
 
   // 인사말
   addMsg("ai", "안녕하세요! 복약 관리 도우미입니다. 궁금한 점을 물어보세요. (※ 의학적 조언이 아닙니다)");
+
+  // 무인 온-로드 다이제스트: 오늘 복약 요약 + 주의사항 (오프라인 목업으로도 동작)
+  renderDigest();
 
   // 알림 타이머 (매 30초 체크)
   checkDueReminders();

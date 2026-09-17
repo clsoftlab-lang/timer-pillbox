@@ -50,6 +50,8 @@ Three AI features, **all labelled NOT medical advice**:
 1. **AI 복약 상담 챗봇** — questions about schedule / side-effects / what-if-you-missed-a-dose → general guidance.
 2. **복약 스케줄 최적화 제안** — suggests a time-slot distribution from your meds list.
 3. **상호작용 경고 자연어 설명** — explains the interaction warnings in plain Korean.
+4. **오늘 복약 요약 + 주의사항 (무인 다이제스트)** — auto-generated on load from the schedule /
+   interaction engines via `askAI`, so it works offline with the mock too.
 
 **DEMO-MODE boundaries (very important):**
 
@@ -57,8 +59,28 @@ Three AI features, **all labelled NOT medical advice**:
   MockProvider** that reuses the `schedule.js` / `interactions.js` engines. No network, no key.
 - **No API key is ever placed in the browser or the repository.** Keys live **server-side only.**
 - To enable **real Claude**: run `server/` (see [`server/README.md`](./server/README.md)),
-  set **`ANTHROPIC_API_KEY`** as a server env var, use model **`claude-opus-5`**, then set
-  `AI_ENDPOINT` in `ai/config.js` to your proxy URL. **Keep the key server-side only.**
+  set **`ANTHROPIC_API_KEY`** as a server env var (cost-first default model
+  **`claude-haiku-4-5`**, raise via `AI_MODEL`), then set `AI_ENDPOINT` in `ai/config.js` to your
+  proxy URL. **Keep the key server-side only.**
+
+## ⚙️ 고도화 — 무인·저비용 실 AI 연동
+
+The proxy is tuned for **cost-efficient, autonomous (무인)** real-AI:
+
+- **Cost model** — cost-first default **`claude-haiku-4-5`** ($1 / $5 per MTok in/out), with
+  **prompt caching** on the stable system prompt, a **`~700` output cap** per task, and a monthly
+  **token budget** (`AI_MONTHLY_TOKEN_CAP`, default 2,000,000) plus a per-IP rate limit.
+  Raise `AI_MODEL` to `claude-sonnet-5` / `claude-opus-5` only when you need more quality.
+- **Rough cost** — a typical short request (~500 input + ~600 output tokens) is on the order of
+  **~$3–4 per 1,000 requests** on Haiku 4.5, and prompt caching further cuts the repeated system-prompt cost.
+- **Free, one-deploy hosting** — `server/worker.js` + `server/wrangler.toml` run on the **Cloudflare
+  Workers free tier** (no server to babysit): `wrangler secret put ANTHROPIC_API_KEY` then
+  `wrangler deploy`. It calls Anthropic REST directly with the same task/model/caching rules.
+- **Never breaks (무인)** — if the endpoint fails, returns `429 {fallback:true}`, or the network is
+  down, `ai/ai.js` **auto-falls back to the local mock** (streaming preserved), so the app keeps working.
+
+> **API keys are server-side only — never in the browser or repo.** (Node proxy: env var;
+> Cloudflare Worker: `wrangler secret`.) AI answers are **NOT medical advice.**
 
 ## Run locally
 
